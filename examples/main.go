@@ -1,17 +1,18 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/ducbm95/golang-profiler/profiler/profiler"
 )
 
 func main() {
-	funcName := profiler.GetFuncName()
-	profiler.StartRecord(funcName)
+	profiler.StartRecord("a")
+	// profiler.EndRecord("a")
 
-	profiler.EndRecord(funcName)
+	profiler.StartRecord("b")
+	profiler.EndRecord("b")
 
-	fmt.Println(profiler.GetStats(funcName))
-	fmt.Println(profiler.GetStats(funcName).Stats[0])
+	// fmt.Printf("%#v\n", profiler.GetStats("main.main@a"))
+	// fmt.Printf("%#v\n", profiler.GetStats("main.main@b"))
+
+	profiler.GetAllStats()
 }
