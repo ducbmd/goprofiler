@@ -15,4 +15,6 @@ func main() {
 	// fmt.Printf("%#v\n", profiler.GetStats("main.main@b"))
 
 	profiler.GetAllStats()
+
+	profiler.InitUI()
 }
