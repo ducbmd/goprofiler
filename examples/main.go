@@ -17,4 +17,6 @@ func main() {
 	profiler.GetAllStats()
 
 	profiler.InitUI()
+
+	// profiler.Profiler.EndRecord()
 }

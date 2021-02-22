@@ -5,9 +5,15 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/olekukonko/tablewriter"
+)
+
+const (
+	minInt64 = -9223372036854775808
+	maxInt64 = 9223372036854775807
 )
 
 // Profiler is ...
@@ -17,33 +23,40 @@ type Profiler interface {
 }
 
 // StatPoint is a struct to store time-series data.
-type StatPoint struct {
-	StartTime   int64 `json:"epoch_millis"`
-	TotalTmProc int64
+type statPoint struct {
+	StartTime   int64 `json:"epoch_microsecs"`
+	TotalTmProc int64 `json:"microsecs"`
 }
 
+// UniformStatPoint is
 type UniformStatPoint struct {
 	StartTime      int64 `json:"epoch_second"`
-	ProcRate       int64
-	ReqRate        int64
-	AvgTimeProc    int64
+	TotalReq       int64
+	TotalTmProc    int64
 	PeekTimeProc   int64
 	PeekPendingReq int64
+	// StartTime      int64 `json:"epoch_second"`
+	// ProcRate       float64
+	// ReqRate        float64
+	// AvgTimeProc    float64
+	// PeekTimeProc   int64
+	// PeekPendingReq int64
 }
 
+// StatInfo is
 type StatInfo struct {
 	TotalReq    int64
 	TotalTmProc int64
 	PendingReq  int32
 
-	Stats        []StatPoint
+	stats        []statPoint
 	UniformStats []UniformStatPoint
 
-	LastReqStartTime int64 `json:"epoch_millis"`
+	lastReqStartTime int64 // `json:"epoch_millis"`
 }
 
-func (statInfo *StatInfo) appendStat(statPoint StatPoint) {
-	(*statInfo).Stats = append(statInfo.Stats, statPoint)
+func (statInfo *StatInfo) appendStat(statPoint statPoint) {
+	(*statInfo).stats = append(statInfo.stats, statPoint)
 }
 
 func getFuncName(api string) string {
@@ -63,7 +76,9 @@ func getFuncName(api string) string {
 }
 
 var mapHistory map[string]*StatInfo = make(map[string]*StatInfo)
+var mut sync.Mutex
 
+// StartRecord is
 func StartRecord(api string) {
 	funcName := getFuncName(api)
 
@@ -71,7 +86,7 @@ func StartRecord(api string) {
 	statInfo, ok := mapHistory[funcName]
 	if !ok {
 		statInfo = &StatInfo{
-			Stats:        make([]StatPoint, 0, 0),
+			stats:        make([]statPoint, 0, 0),
 			UniformStats: make([]UniformStatPoint, 0, 0),
 		}
 		mapHistory[funcName] = statInfo
@@ -79,26 +94,28 @@ func StartRecord(api string) {
 
 	statInfo.TotalReq++
 	statInfo.PendingReq++
-	statInfo.LastReqStartTime = currentTime
+	statInfo.lastReqStartTime = currentTime
 }
 
+// EndRecord is
 func EndRecord(api string) {
 	funcName := getFuncName(api)
 
 	currentTime := time.Now().UnixNano() / int64(time.Microsecond)
 	statInfo, _ := mapHistory[funcName]
 
-	statInfo.TotalTmProc += (currentTime - statInfo.LastReqStartTime)
+	statInfo.TotalTmProc += (currentTime - statInfo.lastReqStartTime)
 	statInfo.PendingReq--
 
-	statPoint := StatPoint{
-		StartTime:   statInfo.LastReqStartTime,
-		TotalTmProc: currentTime - statInfo.LastReqStartTime,
+	statPoint := statPoint{
+		StartTime:   statInfo.lastReqStartTime,
+		TotalTmProc: currentTime - statInfo.lastReqStartTime,
 	}
 	statInfo.appendStat(statPoint)
-	statInfo.LastReqStartTime = 0
+	statInfo.lastReqStartTime = 0
 }
 
+// GetStats is
 func GetStats(funcName string) StatInfo {
 	statInfo, ok := mapHistory[funcName]
 	if ok {
@@ -109,8 +126,8 @@ func GetStats(funcName string) StatInfo {
 	}
 }
 
+// GetAllStats is
 func GetAllStats() {
-	// var listStat []StatInfo = make([]StatInfo, 0)
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Name", "TotalReq", "PendingReq", "TotalTmProc", "LastTmProc", "ProcRate", "ReqRate"})
 	table.SetAutoFormatHeaders(false)
@@ -130,4 +147,58 @@ func GetAllStats() {
 	}
 
 	table.Render()
+}
+
+func uniformStat(statInfo *StatInfo) {
+	mut.Lock()
+	stats := statInfo.stats
+	statInfo.stats = make([]statPoint, 0, 0)
+	mut.Unlock()
+
+	// var uniformData []UniformStatPoint
+
+	var mapStatBySecond map[int64][]statPoint = make(map[int64][]statPoint) // map from second to list of stats
+	minSecond := int64(maxInt64)
+	maxSecond := int64(minInt64)
+	for _, stat := range stats {
+		startTimeSecond := stat.StartTime / 1000000
+		if startTimeSecond > maxInt64 {
+			maxSecond = startTimeSecond
+		}
+
+		if startTimeSecond < minInt64 {
+			minSecond = startTimeSecond
+		}
+
+		lsStat, ok := mapStatBySecond[startTimeSecond]
+
+		if !ok {
+			lsStat = make([]statPoint, 0, 0)
+			mapStatBySecond[startTimeSecond] = lsStat
+		}
+
+		lsStat = append(lsStat, stat)
+	}
+
+	for second := minSecond; second <= maxSecond; second++ {
+		totalReq := int64(0)
+		totalTmProc := int64(0)
+
+		statBySecond, ok := mapStatBySecond[second]
+		if ok {
+			for _, stat := range statBySecond {
+				totalReq++
+				totalTmProc += stat.TotalTmProc
+			}
+		}
+
+		var uniformStatPoint UniformStatPoint
+		uniformStatPoint.StartTime = second
+		uniformStatPoint.TotalReq = totalReq
+		uniformStatPoint.TotalTmProc = totalTmProc
+
+		// uniformStatPoint.ReqRate = float64(totalReq)
+		// uniformStatPoint.ProcRate = float64(totalTmProc / totalReq)
+		// uniformStatPoint.
+	}
 }
