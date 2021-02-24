@@ -35,8 +35,10 @@ type Profiler interface {
 	StartRecord(api string) (State, error)
 	EndRecord(api string, state State) error
 
-	GetRealtimeStats(api string) (StatPoint, error)
-	GetHistorySecondStats(api string) ([]UniformStatPoint, error)
-	GetHistoryMinuteStats(api string) ([]UniformStatPoint, error)
-	GetHistoryHourStats(api string) ([]UniformStatPoint, error)
+	GetRealtimeStats(fullAPI string) (StatPoint, error)
+	GetHistorySecondStats(fullAPI string) ([]UniformStatPoint, error)
+	GetHistoryMinuteStats(fullAPI string) ([]UniformStatPoint, error)
+	GetHistoryHourStats(fullAPI string) ([]UniformStatPoint, error)
+
+	GetAllApis() ([]string, error)
 }

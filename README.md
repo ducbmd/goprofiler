@@ -11,4 +11,11 @@ Nowadays, in the microservices ecosystem, there are too many services run scatte
 $ go get github.com/ducbm95/golang-profiler/profiler
 ```
 
-## Example
+## Example Usage
+```golang
+prof := profiler.GetProfilerImpl()
+
+state, _ := prof.StartRecord("getFromDB")
+// the business logic for `getFromDB`
+prof.EndRecord("getFromDB", state)
+```

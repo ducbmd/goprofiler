@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 )
@@ -31,11 +32,23 @@ type ProfilerImpl struct {
 	mut        sync.Mutex
 }
 
-func NewProfilerImpl() Profiler {
-	profiler := ProfilerImpl{}
-	profiler.mapHistory = make(map[string]*StatInfo)
+var profiler Profiler
+var syncOnce sync.Once
 
-	return &profiler
+func GetProfilerImpl() Profiler {
+	syncOnce.Do(func() {
+		profilerImpl := ProfilerImpl{}
+		profilerImpl.mapHistory = make(map[string]*StatInfo)
+		profiler = &profilerImpl
+	})
+
+	return profiler
+}
+
+func ResetProfilerImpl() {
+	profilerImpl := ProfilerImpl{}
+	profilerImpl.mapHistory = make(map[string]*StatInfo)
+	profiler = &profilerImpl
 }
 
 func (statInfo *StatInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
@@ -166,64 +179,56 @@ func (profiler *ProfilerImpl) EndRecord(api string, state State) error {
 	return nil
 }
 
-func (profiler *ProfilerImpl) GetRealtimeStats(fullApi string) (StatPoint, error) {
+func (profiler *ProfilerImpl) GetRealtimeStats(fullAPI string) (StatPoint, error) {
 	currentTime := time.Now().UnixNano()/int64(time.Second) - 1
 
-	statInfo := profiler.mapHistory[fullApi]
+	statInfo := profiler.mapHistory[fullAPI]
 
 	var statPoint StatPoint
 	statPoint.TotalReq = statInfo.TotalReq
 	statPoint.TotalTmProc = statInfo.TotalTmProc
 	statPoint.PendingReq = statInfo.PendingReq
 	statPoint.LastTmProc = statInfo.LastTmProc
-	statPoint.ProcRate = float64(statPoint.TotalReq / statPoint.TotalTmProc)
+	if statPoint.TotalTmProc > 0 {
+		statPoint.ProcRate = float64(statPoint.TotalReq / statPoint.TotalTmProc)
+	}
 	statPoint.ReqRate = float64(statInfo.secondStats[currentTime%nStatSecond].TotalReq)
 
 	return statPoint, nil
 }
-func (profiler *ProfilerImpl) GetHistorySecondStats(api string) ([]UniformStatPoint, error) {
+func (profiler *ProfilerImpl) GetHistorySecondStats(fullAPI string) ([]UniformStatPoint, error) {
+	currentTime := time.Now().UnixNano() / int64(time.Second)
+	statInfo := profiler.mapHistory[fullAPI]
+
+	secondStats := make([]UniformStatPoint, nStatSecond)
+	for i := 0; i < nStatSecond; i++ {
+		idx := (currentTime + int64(i)) % nStatSecond
+		secondStat := statInfo.secondStats[idx]
+
+		if secondStat.StartTime < currentTime-int64(nStatSecond) {
+			secondStats[i] = secondStat
+		} else {
+			secondStats[i] = UniformStatPoint{}
+		}
+	}
+
+	return secondStats, nil
+}
+func (profiler *ProfilerImpl) GetHistoryMinuteStats(fullAPI string) ([]UniformStatPoint, error) {
 	// TODO
 	return nil, nil
 }
-func (profiler *ProfilerImpl) GetHistoryMinuteStats(api string) ([]UniformStatPoint, error) {
-	// TODO
-	return nil, nil
-}
-func (profiler *ProfilerImpl) GetHistoryHourStats(api string) ([]UniformStatPoint, error) {
+func (profiler *ProfilerImpl) GetHistoryHourStats(fullAPI string) ([]UniformStatPoint, error) {
 	// TODO
 	return nil, nil
 }
 
-// GetStats is
-// func GetStats(funcName string) StatInfo {
-// 	statInfo, ok := mapHistory[funcName]
-// 	if ok {
-// 		return *statInfo
-// 	} else {
-// 		fmt.Printf("%s has no stats", funcName)
-// 		return StatInfo{}
-// 	}
-// }
+func (profiler *ProfilerImpl) GetAllApis() ([]string, error) {
+	apis := make([]string, 0)
+	for k, _ := range profiler.mapHistory {
+		apis = append(apis, k)
+	}
 
-// // GetAllStats is
-// func GetAllStats() {
-// 	table := tablewriter.NewWriter(os.Stdout)
-// 	table.SetHeader([]string{"Name", "TotalReq", "PendingReq", "TotalTmProc", "LastTmProc", "ProcRate", "ReqRate"})
-// 	table.SetAutoFormatHeaders(false)
-// 	table.SetHeaderAlignment(tablewriter.ALIGN_RIGHT)
-
-// 	for k, v := range mapHistory {
-// 		lineData := []string{
-// 			k,
-// 			strconv.FormatInt(v.TotalReq, 10),
-// 			strconv.FormatInt(int64(v.PendingReq), 10),
-// 			strconv.FormatInt(v.TotalTmProc, 10),
-// 			"0",
-// 			"0",
-// 			"0",
-// 		}
-// 		table.Append(lineData)
-// 	}
-
-// 	table.Render()
-// }
+	sort.Strings(apis)
+	return apis, nil
+}
