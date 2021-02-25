@@ -15,9 +15,9 @@ type statInfo struct {
 	pendingReq  int32
 	lastTmProc  int64
 
-	secondStats [nStatSecond]UniformStatPoint
-	minuteStats [nStatMinute]UniformStatPoint
-	hourStats   [nStatHour]UniformStatPoint
+	secondStats [NStatSecond]UniformStatPoint
+	minuteStats [NStatMinute]UniformStatPoint
+	hourStats   [NStatHour]UniformStatPoint
 
 	timestamp int64
 
@@ -29,25 +29,6 @@ type statInfo struct {
 type profilerImpl struct {
 	mapHistory map[string]*statInfo
 	mut        sync.Mutex
-}
-
-var profiler Profiler
-var syncOnce sync.Once
-
-func GetProfilerImpl() Profiler {
-	syncOnce.Do(func() {
-		profilerImpl := profilerImpl{}
-		profilerImpl.mapHistory = make(map[string]*statInfo)
-		profiler = &profilerImpl
-	})
-
-	return profiler
-}
-
-func ResetProfilerImpl() {
-	profImpl := profilerImpl{}
-	profImpl.mapHistory = make(map[string]*statInfo)
-	profiler = &profImpl
 }
 
 func (si *statInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
@@ -63,7 +44,7 @@ func (si *statInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
 		si.mutSecond.Lock()
 		defer si.mutSecond.Unlock()
 
-		statSecond := si.secondStats[timeSecs%nStatSecond]
+		statSecond := si.secondStats[timeSecs%NStatSecond]
 		statSecond.StartTime = timeSecs
 		statSecond.TotalReq++
 		statSecond.TotalTmProc += tmProc
@@ -73,14 +54,14 @@ func (si *statInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
 		if si.pendingReq > statSecond.PeekPendingReq {
 			statSecond.PeekPendingReq = si.pendingReq
 		}
-		si.secondStats[timeSecs%nStatSecond] = statSecond
+		si.secondStats[timeSecs%NStatSecond] = statSecond
 	}
 
 	{
 		si.mutMinute.Lock()
 		defer si.mutMinute.Unlock()
 
-		statMinute := si.minuteStats[timeMins%nStatMinute]
+		statMinute := si.minuteStats[timeMins%NStatMinute]
 		statMinute.StartTime = timeMins
 		statMinute.TotalReq++
 		statMinute.TotalTmProc += tmProc
@@ -90,14 +71,14 @@ func (si *statInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
 		if si.pendingReq > statMinute.PeekPendingReq {
 			statMinute.PeekPendingReq = si.pendingReq
 		}
-		si.minuteStats[timeMins%nStatMinute] = statMinute
+		si.minuteStats[timeMins%NStatMinute] = statMinute
 	}
 
 	{
 		si.mutHour.Lock()
 		defer si.mutHour.Unlock()
 
-		statHour := si.hourStats[timeHours%nStatHour]
+		statHour := si.hourStats[timeHours%NStatHour]
 		statHour.StartTime = timeHours
 		statHour.TotalReq++
 		statHour.TotalTmProc += tmProc
@@ -107,7 +88,7 @@ func (si *statInfo) addHistoryStat(startTmMicrosec int64, endTmMicrosec int64) {
 		if si.pendingReq > statHour.PeekPendingReq {
 			statHour.PeekPendingReq = si.pendingReq
 		}
-		si.hourStats[timeHours%nStatHour] = statHour
+		si.hourStats[timeHours%NStatHour] = statHour
 	}
 }
 
@@ -179,7 +160,7 @@ func (profiler *profilerImpl) GetRealtimeStats(fullAPI string) (StatPoint, error
 	if sp.TotalTmProc > 0 {
 		sp.ProcRate = 1000000 * float64(sp.TotalReq) / float64(sp.TotalTmProc)
 	}
-	sp.ReqRate = float64(si.secondStats[currentTime%nStatSecond].TotalReq)
+	sp.ReqRate = float64(si.secondStats[currentTime%NStatSecond].TotalReq)
 
 	return sp, nil
 }
@@ -188,12 +169,12 @@ func (profiler *profilerImpl) GetHistorySecondStats(fullAPI string) ([]UniformSt
 	currentTime := time.Now().UnixNano() / int64(time.Second)
 	statInfo := profiler.mapHistory[fullAPI]
 
-	secondStats := make([]UniformStatPoint, nStatSecond)
-	for i := 0; i < nStatSecond; i++ {
-		idx := (currentTime + int64(i) + 1) % nStatSecond
+	secondStats := make([]UniformStatPoint, NStatSecond)
+	for i := 0; i < NStatSecond; i++ {
+		idx := (currentTime + int64(i) + 1) % NStatSecond
 		secondStat := statInfo.secondStats[idx]
 
-		if secondStat.StartTime >= currentTime-int64(nStatSecond) {
+		if secondStat.StartTime >= currentTime-int64(NStatSecond) {
 			secondStats[i] = secondStat
 		} else {
 			secondStats[i] = UniformStatPoint{}
@@ -207,12 +188,12 @@ func (profiler *profilerImpl) GetHistoryMinuteStats(fullAPI string) ([]UniformSt
 	currentTime := time.Now().UnixNano() / int64(time.Minute)
 	si := profiler.mapHistory[fullAPI]
 
-	minuteStats := make([]UniformStatPoint, nStatMinute)
-	for i := 0; i < nStatMinute; i++ {
-		idx := (currentTime + int64(i) + 1) % nStatMinute
+	minuteStats := make([]UniformStatPoint, NStatMinute)
+	for i := 0; i < NStatMinute; i++ {
+		idx := (currentTime + int64(i) + 1) % NStatMinute
 		minuteStat := si.minuteStats[idx]
 
-		if minuteStat.StartTime >= currentTime-int64(nStatHour) {
+		if minuteStat.StartTime >= currentTime-int64(NStatHour) {
 			minuteStats[i] = minuteStat
 		} else {
 			minuteStats[i] = UniformStatPoint{}
@@ -226,15 +207,15 @@ func (profiler *profilerImpl) GetHistoryHourStats(fullAPI string) ([]UniformStat
 	currentTime := time.Now().UnixNano() / int64(time.Hour)
 	si := profiler.mapHistory[fullAPI]
 
-	hourStats := make([]UniformStatPoint, nStatHour)
-	for i := 0; i < nStatHour; i++ {
-		idx := (currentTime + int64(i) + 1) % nStatHour
+	hourStats := make([]UniformStatPoint, NStatHour)
+	for i := 0; i < NStatHour; i++ {
+		idx := (currentTime + int64(i) + 1) % NStatHour
 		hourStat := si.hourStats[idx]
 		if hourStat.StartTime > 0 {
 			fmt.Println(hourStat)
 		}
 
-		if hourStat.StartTime >= currentTime-int64(nStatHour) {
+		if hourStat.StartTime >= currentTime-int64(NStatHour) {
 			hourStats[i] = hourStat
 		} else {
 			hourStats[i] = UniformStatPoint{}

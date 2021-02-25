@@ -99,15 +99,41 @@ func TestLogic4(t *testing.T) {
 
 	statPoint, _ := prof.GetRealtimeStats(api)
 	t.Log(statPoint)
+	if !(int(statPoint.TotalReq) == len(procTmList)) {
+		t.Errorf("Expect TotalReq: %d. Actual: %d", len(procTmList), statPoint.TotalReq)
+	}
+	if !(statPoint.TotalTmProc/1_000_000 == 4) {
+		t.Errorf("Expect TotalTmProc: %d. Actual: %d", 4, statPoint.TotalTmProc/1_000_000)
+	}
 
 	secondStatPoints, _ := prof.GetHistorySecondStats(api)
 	t.Log(secondStatPoints)
+	if !(secondStatPoints[profiler.NStatSecond-5].TotalReq == 4 &&
+		secondStatPoints[profiler.NStatSecond-4].TotalReq == 3 &&
+		secondStatPoints[profiler.NStatSecond-3].TotalReq == 3 &&
+		secondStatPoints[profiler.NStatSecond-2].TotalReq == 3) {
+		t.Errorf("History second not correct")
+	}
+	if !(secondStatPoints[profiler.NStatSecond-5].TotalTmProc/1_000_000 == 1 &&
+		secondStatPoints[profiler.NStatSecond-4].TotalTmProc/1_000_000 == 1 &&
+		secondStatPoints[profiler.NStatSecond-3].TotalTmProc/1_000_000 == 1 &&
+		secondStatPoints[profiler.NStatSecond-2].TotalTmProc/1_000_000 == 1) {
+		t.Errorf("History second not correct")
+	}
 
 	minuteStatPoints, _ := prof.GetHistoryMinuteStats(api)
 	t.Log(minuteStatPoints)
+	if !(minuteStatPoints[profiler.NStatMinute-1].TotalReq == 13 &&
+		minuteStatPoints[profiler.NStatMinute-1].TotalTmProc/1_000_000 == 4) {
+		t.Errorf("History minute not correct")
+	}
 
 	hourStatPoints, _ := prof.GetHistoryHourStats(api)
 	t.Log(hourStatPoints)
+	if !(hourStatPoints[profiler.NStatHour-1].TotalReq == 13 &&
+		hourStatPoints[profiler.NStatHour-1].TotalTmProc/1_000_000 == 4) {
+		t.Errorf("History hour not correct")
+	}
 
 	profiler.ResetProfilerImpl()
 }

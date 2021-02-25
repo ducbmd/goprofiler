@@ -1,12 +1,12 @@
 package profiler
 
 const (
-	minInt64 = -9223372036854775808
-	maxInt64 = 9223372036854775807
+	MinInt64 = -9223372036854775808
+	MaxInt64 = 9223372036854775807
 
-	nStatSecond = 120
-	nStatMinute = 120
-	nStatHour   = 336
+	NStatSecond = 120
+	NStatMinute = 120
+	NStatHour   = 336
 )
 
 // State struct stores state data when StartRecord
