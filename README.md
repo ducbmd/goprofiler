@@ -11,8 +11,23 @@ Nowadays, in the microservices ecosystem, there are too many services run scatte
 $ go get github.com/ducbm95/golang-profiler/profiler
 ```
 
-## Example Usage
+## Supported APIs
+- GetRealtimeStats
+- GetHistorySecondStats
+- GetHistoryMinuteStats
+- GetHistoryHourStats
+- GetAllApis
 
+## Expose via REST API
+```
+GET /api/realtime
+GET /api/history/second
+GET /api/history/minute
+GET /api/history/hour
+```
+
+## Example Usage
+### Profiling function
 ```golang
 package main
 
@@ -28,3 +43,6 @@ func main() {
 	prof.EndRecord("getFromDB", state)
 }
 ```
+
+## Todo
+- Implement a client that aggregate profiling data from multiple services to a single webpage.
