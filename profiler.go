@@ -1,4 +1,4 @@
-package profiler
+package goprofiler
 
 const (
 	MinInt64 = -9223372036854775808

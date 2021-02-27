@@ -1,24 +1,24 @@
-package profiler
+package goprofiler
 
 import "sync"
 
-var profiler Profiler
+var profilerInst Profiler
 var syncOnce sync.Once
 
 func GetProfilerImpl() Profiler {
 	syncOnce.Do(func() {
 		profilerImpl := profilerImpl{}
 		profilerImpl.mapHistory = make(map[string]*statInfo)
-		profiler = &profilerImpl
+		profilerInst = &profilerImpl
 
 		initAPI()
 	})
 
-	return profiler
+	return profilerInst
 }
 
 func ResetProfilerImpl() {
 	profImpl := profilerImpl{}
 	profImpl.mapHistory = make(map[string]*statInfo)
-	profiler = &profImpl
+	profilerInst = &profImpl
 }

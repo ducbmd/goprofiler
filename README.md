@@ -8,7 +8,7 @@ Nowadays, in the microservices ecosystem, there are too many services run scatte
 
 ## Installation
 ```bash
-$ go get github.com/ducbm95/golang-profiler/profiler
+$ go get github.com/ducbm95/goprofiler
 ```
 
 ## Supported APIs
