@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ducbm95/golang-profiler/profiler/profiler"
+	"github.com/ducbm95/golang-profiler/profiler"
 )
 
 func TestLogic1(t *testing.T) {

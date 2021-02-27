@@ -1,4 +1,4 @@
-module github.com/ducbm95/golang-profiler/profiler
+module github.com/ducbm95/golang-profiler
 
 go 1.15
 

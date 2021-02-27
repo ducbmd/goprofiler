@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ducbm95/golang-profiler/profiler/profiler"
+	"github.com/ducbm95/golang-profiler/profiler"
 )
 
 func main() {
