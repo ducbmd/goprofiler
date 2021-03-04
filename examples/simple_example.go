@@ -1,8 +1,6 @@
 package main
 
-import (
-	"github.com/ducbm95/golang-profiler/profiler/profiler"
-)
+import profiler "github.com/ducbm95/goprofiler"
 
 func main() {
 	prof := profiler.GetProfilerImpl()

@@ -1,4 +1,4 @@
-package profiler
+package goprofiler
 
 import (
 	"net/http"

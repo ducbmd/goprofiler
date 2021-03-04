@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ducbm95/golang-profiler/profiler/profiler"
+	profiler "github.com/ducbm95/goprofiler"
 )
 
 func main() {

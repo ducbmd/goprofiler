@@ -1,4 +1,4 @@
-package profiler_test
+package goprofiler
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ducbm95/golang-profiler/profiler/profiler"
+	profiler "github.com/ducbm95/goprofiler"
 )
 
 func TestLogic1(t *testing.T) {
